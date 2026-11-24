@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<title>构图助手</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif}
+  #stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;
+    display:flex;align-items:center;gap:8px;background:linear-gradient(#000d,#0000);z-index:10}
+  .packbtn{border:1px solid #ffd54a66;background:#00000080;color:#ffd54a;font-size:12.5px;
+    padding:6px 11px;border-radius:999px;backdrop-filter:blur(8px);white-space:nowrap;font-weight:600}
+  .modes{display:flex;gap:3px;background:#00000066;border-radius:999px;padding:3px;
+    backdrop-filter:blur(8px);border:1px solid #ffffff1f}
+  .modes button{border:0;background:transparent;color:#ffffffa6;font-size:12.5px;padding:6px 11px;border-radius:999px}
+  .modes button.on{background:#ffffff2e;color:#fff;font-weight:700}
+  .spacer{flex:1}
+  .ratio{display:flex;gap:4px;background:#00000066;border-radius:999px;padding:3px;backdrop-filter:blur(8px)}
+  .ratio button{border:0;background:transparent;color:#ffffffb3;font-size:12px;padding:5px 10px;border-radius:999px}
+  .ratio button.on{background:#ffffff26;color:#fff;font-weight:600}
+  .icon{border:0;background:#00000066;color:#fff;font-size:12px;padding:7px 11px;border-radius:999px;
+    backdrop-filter:blur(8px);border:1px solid #ffffff1f}
+  .bottom{position:fixed;left:0;right:0;bottom:0;padding:8px 10px calc(env(safe-area-inset-bottom) + 10px);
+    background:linear-gradient(#0000,#000d 55%);z-index:10;display:flex;align-items:flex-end;gap:10px}
+  .leftcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+  .hint{color:#ffffffdb;font-size:12.5px;line-height:1.45}
+  .hint .t{color:#ffd54a;font-weight:700}
+  .plans{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .plans::-webkit-scrollbar{display:none}
+  .plan{flex:0 0 auto;border:1px solid #ffffff33;background:#00000059;color:#fff;border-radius:12px;
+    padding:7px 11px;font-size:12.5px;backdrop-filter:blur(8px);white-space:nowrap;position:relative}
+  .plan.on{border-color:#ffd54a;background:#ffd54a26;color:#ffe7a0;font-weight:600}
+  .plan .r{display:block;font-size:10.5px;color:#ffffff8c;margin-top:2px;font-weight:400}
+  .plan.on .r{color:#ffe7a0b3}
+  .badge{position:absolute;top:-7px;left:8px;background:#ffd54a;color:#000;font-size:9px;font-weight:700;
+    padding:1px 6px;border-radius:999px;font-style:normal}
+  .allbtn{border:1px dashed #ffffff4d;background:#00000059;color:#ffffffb3;border-radius:12px;
+    padding:7px 11px;font-size:12px;white-space:nowrap}
+  .shootcol{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .shoot{width:66px;height:66px;border-radius:50%;background:#fff;border:4px solid #ffffff5c;
+    box-shadow:0 0 0 3px #00000059;transition:transform .08s}
+  .shoot:active{transform:scale(.93)}
+  .mini{font-size:11px;color:#ffffffa6}
+  .panel{position:fixed;inset:0;background:#000000f0;z-index:20;display:none;color:#fff;
+    padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);overflow:auto}
+  .panel h2{font-size:16px;margin-bottom:12px}
+  .panel h3{font-size:13.5px;color:#ffd54a;margin:16px 0 8px}
+  .panel p{font-size:13px;line-height:1.75;color:#ffffffcc;margin-bottom:8px}
+  .panel input{width:100%;padding:11px 12px;border-radius:11px;border:1px solid #ffffff2e;
+    background:#ffffff10;color:#fff;font-size:14px;margin-bottom:8px}
+  .panel label{display:flex;align-items:center;gap:8px;font-size:13px;color:#ffffffcc;margin:6px 0}
+  .panel label input[type=checkbox]{width:auto;margin:0;transform:scale(1.15)}
+  .stat{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+  .stat div{flex:1;min-width:88px;background:#ffffff14;border-radius:12px;padding:10px;text-align:center}
+  .stat b{display:block;font-size:19px;color:#ffd54a}
+  .stat span{font-size:11px;color:#ffffffa6}
+  .panel .close{width:100%;margin-top:14px;padding:13px;border-radius:13px;border:0;background:#ffd54a;
+    color:#000;font-size:14.5px;font-weight:600}
+  .sheet{position:fixed;inset:0;background:#000000cc;z-index:22;display:none;
+    padding:calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+  .sheet .box{background:#111;border-radius:16px;padding:14px;max-width:420px;margin:0 auto}
+  .sheet h3{font-size:15px;color:#fff;margin-bottom:10px}
+  .sheet button{display:block;width:100%;text-align:left;border:0;background:#ffffff12;color:#fff;
+    padding:13px 14px;border-radius:12px;font-size:14.5px;margin-bottom:8px}
+  .sheet button.on{background:#ffd54a;color:#000;font-weight:700}
+  .sheet .cancel{background:transparent;color:#ffffff8c;text-align:center;margin-top:4px}
+  .toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#000000d9;color:#fff;
+    padding:12px 16px;border-radius:12px;font-size:13.5px;z-index:30;display:none;max-width:82%;text-align:center;line-height:1.6}
+  .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:25}
+  .plan .pn{display:block;padding-right:16px}
+  .plan .q{position:absolute;right:5px;top:5px;width:17px;height:17px;line-height:16px;text-align:center;
+    border:1px solid #ffd54a73;border-radius:50%;font-size:10.5px;color:#ffd54a;background:#0000008c}
+  .detail{position:fixed;inset:0;background:#000000f2;z-index:45;display:none;overflow:auto;
+    padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 18px);color:#fff}
+  .detail .dwrap{max-width:460px;margin:0 auto}
+  .detail .dtag{display:inline-block;font-size:11px;color:#000;background:#ffd54a;padding:2px 8px;
+    border-radius:999px;font-weight:700;margin-bottom:8px}
+  .detail h2{font-size:21px;margin-bottom:6px;line-height:1.3}
+  .detail .dsub{font-size:13px;color:#ffffffa6;margin-bottom:16px}
+  .detail .dsec{margin-bottom:15px}
+  .detail .dsec b{display:block;font-size:12px;color:#ffd54a;letter-spacing:.5px;margin-bottom:5px}
+  .detail .dsec p{font-size:13.5px;line-height:1.8;color:#ffffffd9}
+  .detail .dsec .step{display:flex;gap:8px;font-size:13.5px;line-height:1.75;color:#ffffffd9;margin-bottom:5px}
+  .detail .dsec .step i{flex:0 0 auto;width:17px;height:17px;border-radius:50%;background:#ffffff26;
+    color:#fff;font-size:10.5px;font-style:normal;text-align:center;line-height:17px;margin-top:2px}
+  .detail .warn{background:#ffffff10;border-left:2px solid #ff8a65;padding:9px 11px;border-radius:0 8px 8px 0;
+    font-size:13px;line-height:1.7;color:#ffccbca6}
+  .detail .dbtns{display:flex;gap:10px;margin-top:18px}
+  .detail .dbtns button{flex:1;padding:13px;border-radius:13px;border:0;font-size:14.5px;font-weight:600}
+  .detail .use{background:#ffd54a;color:#000}
+  .detail .q2{background:#ffffff24;color:#fff}
+  .preview{position:fixed;inset:0;background:#000000f2;z-index:50;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+  .preview img{max-width:100%;max-height:68vh;border-radius:10px;object-fit:contain;-webkit-touch-callout:default}
+  .preview .ptip{color:#fff;font-size:14px;text-align:center;line-height:1.6}
+  .preview .ptip b{color:#ffd54a}
+  .preview .pbtns{display:flex;gap:10px}
+  .preview button{padding:12px 22px;border-radius:12px;border:0;font-size:14px;font-weight:600}
+  .preview .save{background:#ffd54a;color:#000}
+  .preview .close2{background:#ffffff24;color:#fff}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div class="flash" id="flash"></div>
+
+<div class="top">
+  <button class="packbtn" id="packBtn">婚礼</button>
+  <div class="modes" id="modes">
+    <button data-m="person" class="on">人</button>
+    <button data-m="object">物</button>
+    <button data-m="scene">景</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="ratio" id="ratio">
+    <button data-r="16:9" class="on">16:9</button>
+    <button data-r="3:4">3:4</button>
+    <button data-r="9:16">9:16</button>
+  </div>
+  <button class="icon" id="statBtn">设置</button>
+</div>
+
+<div class="bottom">
+  <div class="leftcol">
+    <div class="hint" id="hint">点一下主体位置（按住拖动可框出大小）</div>
+    <div class="plans" id="plans"></div>
+  </div>
+  <div class="shootcol">
+    <button class="shoot" id="shoot"></button>
+    <div class="mini" id="mini1">横屏</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="box">
+    <h3>选行业包</h3>
+    <div id="packList"></div>
+    <button class="cancel" id="packCancel">取消</button>
+  </div>
+</div>
+
+<div class="panel" id="panel">
+  <h2>设置 / 记录</h2>
+  <h3>我的署名</h3>
+  <input id="brandName" placeholder="名字或店名，比如：老王婚礼影像">
+  <input id="brandContact" placeholder="联系方式，比如：微信 wang001">
+  <label><input type="checkbox" id="wmChk"> 照片右下角加署名水印</label>
+  <button class="icon" id="saveBrand" style="width:100%;padding:12px;border-radius:12px;margin-top:6px">保存署名</button>
+
+  <h3>累计</h3>
+  <div class="stat">
+    <div><b id="cPerson">0</b><span>人像</span></div>
+    <div><b id="cObject">0</b><span>静物</span></div>
+    <div><b id="cScene">0</b><span>景色</span></div>
+  </div>
+  <p id="recent" style="font-size:12.5px;color:#ffffff9c"></p>
+  <p style="margin-top:12px">构图排序按规则算：看主体位置、大小，挑改动最小最稳的那条。不是审美判断。</p>
+  <button class="close" id="panelClose">关掉</button>
+</div>
+
+<div class="detail" id="detail">
+  <div class="dwrap">
+    <div class="dtag" id="dTag">人像</div>
+    <h2 id="dName"></h2>
+    <div class="dsub" id="dUse"></div>
+    <div class="dsec"><b>为什么有效</b><p id="dWhy"></p></div>
+    <div class="dsec"><b>怎么做</b><div id="dHow"></div></div>
+    <div class="dsec"><b>别这么用</b><div class="warn" id="dNot"></div></div>
+    <div class="dbtns">
+      <button class="use" id="dUseBtn">用这条拍</button>
+      <button class="q2" id="dClose">关掉</button>
+    </div>
+    <p style="font-size:12px;color:#ffffff70;margin-top:14px;line-height:1.7">记不住没关系。这些说明不用背，拍过十来次就成肌肉记忆——那时候你根本不用打开这个工具。</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="preview" id="preview">
+  <img id="pimg" alt="拍到的照片">
+  <div class="ptip">拍好了。<b>长按上面这张图</b>，选“保存图片”，就进相册。</div>
+  <div class="pbtns">
+    <button class="save" id="psave">另存 / 分享</button>
+    <button class="close2" id="pclose">继续拍</button>
+  </div>
+</div>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+<script>
+(function(){
+  const cv=document.getElementById('stage'), ctx=cv.getContext('2d');
+  const video=document.createElement('video');
+  video.setAttribute('playsinline',''); video.muted=true; video.autoplay=true;
+
+  const PACKS={
+    wedding:{name:'婚礼'},
+    family:{name:'亲子'},
+    store:{name:'探店'},
+    basic:{name:'通用'}
+  };
+
+  const S={
+    ratioW:16, ratioH:9,
+    mode:'person',
+    pack:'wedding',
+    subj:null,
+    comps:[], sel:0, showAll:false,
+    rect:null, rankSig:'', lastBuild:0,
+    stream:null, ready:false, W:0,H:0,dpr:1,
+    lastBlob:null, lastUrl:null, lastName:'',
+    brand:{name:'',contact:''}, wm:false
+  };
+
+  /* ================= 构图库：基础 + 行业包专用 ================= */
+  const COMPS=[
+    {n:'三分法·视线留白', d:'主体压右三分线，视线方向留空', t:['person'], fx:0.667,fy:0.40, zoom:1,    off:1, base:5},
+    {n:'三分法·反向留白', d:'主体压左三分线',               t:['person'], fx:0.333,fy:0.40, zoom:1,    off:1, base:5},
+    {n:'中心构图',        d:'主体居中，头顶留约 1/6',       t:['person'], fx:0.50, fy:0.43, zoom:1,    cen:1, base:5},
+    {n:'黄金分割',        d:'主体压在 0.618 线上',          t:['person'], fx:0.618,fy:0.44, zoom:1,    off:1, base:5},
+    {n:'特写·填充画面',   d:'主体占满 2/3，去掉背景',       t:['person'], fx:0.50, fy:0.50, zoom:0.50, large:1, base:5},
+    {n:'中景·环境交代',   d:'退半步，主体占画面 1/3',       t:['person'], fx:0.50, fy:0.45, zoom:0.72, base:4},
+    {n:'全景·人物小',     d:'人小景大，交代场地',           t:['person'], fx:0.50, fy:0.55, zoom:0.95, small:1, base:4},
+    {n:'低角度·仰拍',     d:'蹲下仰拍，腿长、气场足',       t:['person'], fx:0.50, fy:0.62, zoom:1,    base:4},
+    {n:'高角度·俯拍',     d:'站高俯拍，头顶留白多',         t:['person'], fx:0.50, fy:0.38, zoom:1,    base:4},
+    {n:'大面积留白',      d:'主体放角落，空出画面',         t:['person'], fx:0.28, fy:0.72, zoom:1,    off:1, base:4},
+    {n:'双人并列',        d:'两人各占一侧，中间留缝',       t:['person'], fx:0.50, fy:0.45, zoom:0.85, multi:1, base:5},
+    {n:'过肩构图',        d:'前景肩膀虚化，视线越过',       t:['person'], fx:0.62, fy:0.45, zoom:1.15, base:4},
+    {n:'背影构图',        d:'转身的瞬间，更有故事',         t:['person'], fx:0.50, fy:0.45, zoom:1,    base:3.5},
+    {n:'剪影构图',        d:'逆光压暗主体，背景亮',         t:['person'], fx:0.50, fy:0.45, zoom:1,    base:3.5},
+    {n:'高调构图',        d:'亮背景亮主体，轻盈干净',       t:['person'], fx:0.50, fy:0.45, zoom:1,    base:3.5},
+    {n:'低调构图',        d:'暗背景+一束光，情绪强',        t:['person'], fx:0.50, fy:0.45, zoom:1,    base:3.5},
+    {n:'对角线构图',      d:'主体沿对角线布置，动感',       t:['person'], fx:0.62, fy:0.60, zoom:1,    off:1, base:4},
+    {n:'框架构图',        d:'用门/窗/花枝当前景框',         t:['person'], fx:0.50, fy:0.45, zoom:0.90, base:4},
+    {n:'前景层次',        d:'前景-主体-背景三层',           t:['person'], fx:0.50, fy:0.40, zoom:1.05, base:4},
+    {n:'三角构图',        d:'三人成三角，主次分明',         t:['person'], fx:0.50, fy:0.45, zoom:0.85, multi:1, base:4.5},
+    {n:'极简构图',        d:'一个主体，一片干净背景',       t:['person'], fx:0.50, fy:0.45, zoom:0.80, large:1, base:4},
+
+    {n:'45°俯拍·三分位',  d:'主体压在右下三分交点',         t:['object'], fx:0.62, fy:0.58, zoom:0.92, off:1, base:5},
+    {n:'正面平视·中心',   d:'主体居中，背景干净',           t:['object'], fx:0.50, fy:0.50, zoom:0.92, cen:1, base:5},
+    {n:'顶拍平铺',        d:'正上方俯拍，对称摆位',         t:['object'], fx:0.50, fy:0.50, zoom:0.80, multi:1, base:4.5},
+    {n:'特写·填充',       d:'主体占满画面，去掉杂物',       t:['object'], fx:0.50, fy:0.50, zoom:0.55, large:1, base:5},
+    {n:'留白摆物',        d:'主体靠边，留出呼吸空间',       t:['object'], fx:0.35, fy:0.55, zoom:0.85, off:1, base:4.5},
+    {n:'对角线摆位',      d:'主体沿对角摆放，有动势',       t:['object'], fx:0.60, fy:0.60, zoom:0.90, base:4},
+    {n:'三角摆位',        d:'三件一组，摆成三角',           t:['object'], fx:0.50, fy:0.55, zoom:0.85, multi:1, base:4.5},
+    {n:'网格平铺',        d:'多个同类，整齐网格',           t:['object'], fx:0.50, fy:0.50, zoom:0.75, multi:1, base:4},
+    {n:'前后层次',        d:'一大一小，前景压后景',         t:['object'], fx:0.50, fy:0.45, zoom:1.05, base:4},
+    {n:'浅景深·背景虚',   d:'贴近拍，背景糊掉',             t:['object'], fx:0.50, fy:0.50, zoom:0.65, base:4.5},
+    {n:'硬光·投影构图',   d:'把影子一起拍进去',             t:['object'], fx:0.55, fy:0.55, zoom:0.90, base:4},
+
+    {n:'三分法·地平线下三分', d:'地平线压下方三分线，天占 2/3', t:['scene'], hz:0.667, base:5},
+    {n:'三分法·地平线上三分', d:'地平线压上方三分线，地占 2/3', t:['scene'], hz:0.333, base:5},
+    {n:'地平线居中·对称',     d:'地平线放中间，左右对称',       t:['scene'], hz:0.500, base:4},
+    {n:'引导线构图',          d:'用路/栏杆把视线拉进去',        t:['scene'], hz:0.500, base:4.5},
+    {n:'框架构图·景',         d:'门洞/树枝圈住远处主体',        t:['scene'], hz:0.500, base:4.5},
+    {n:'三层景深',            d:'前景-中景-远景都放一点',       t:['scene'], hz:0.560, base:4.5},
+    {n:'满画幅·广角',         d:'不要地平线，景物铺满',         t:['scene'], hz:null,  base:4.5},
+    {n:'大面积天空',          d:'天空留白，云当地面用',         t:['scene'], hz:0.800, base:4},
+    {n:'剪影构图·景',         d:'逆光拍成剪影，只剩轮廓',       t:['scene'], hz:0.500, base:4},
+    {n:'重复·韵律',           d:'同类元素反复排列',             t:['scene'], hz:null,  base:4},
+    {n:'对角线构图·景',       d:'山脊/屋顶斜着切开画面',        t:['scene'], hz:0.500, base:4},
+    {n:'剪影·低地平线',       d:'剪影压下方，天占满',           t:['scene'], hz:0.780, base:3.5},
+
+    /* ------- 婚礼包 ------- */
+    {n:'通道对称·迎面',   d:'站通道中轴，新人迎面走来',     p:'wedding', t:['person'], fx:0.50, fy:0.45, zoom:1,   base:5.2},
+    {n:'交接·双人侧位',   d:'父亲与新郎各压一条三分线',     p:'wedding', t:['person'], fx:0.50, fy:0.45, zoom:0.90, multi:1, base:5.2},
+    {n:'敬酒·仰拍',       d:'坐下位仰拍，酒杯入画',         p:'wedding', t:['person'], fx:0.50, fy:0.60, zoom:1,   base:4.6},
+    {n:'父母席·侧抓',     d:'侧后 45°，抓表情',             p:'wedding', t:['person'], fx:0.66, fy:0.42, zoom:1,   off:1, base:4.6},
+    {n:'婚戒特写',        d:'戒指放在布料/捧花上，45°',     p:'wedding', t:['object'], fx:0.50, fy:0.50, zoom:0.45, base:5.4},
+    {n:'捧花·45°',        d:'捧花压三分交点，背景虚',       p:'wedding', t:['object'], fx:0.62, fy:0.50, zoom:0.70, base:4.8},
+    {n:'喜字背景摆拍',    d:'对称留白，主体居中',           p:'wedding', t:['object'], fx:0.50, fy:0.50, zoom:0.80, base:4.2},
+    {n:'宴会厅·对称中轴', d:'正对舞台，左右对称',           p:'wedding', t:['scene'], hz:0.50, base:5.2},
+    {n:'外景·大逆光',     d:'背对夕阳，人压暗',             p:'wedding', t:['scene'], hz:0.70, base:4.6},
+
+    /* ------- 亲子包 ------- */
+    {n:'蹲下·平视孩子',   d:'蹲到孩子眼睛高度，别俯拍',     p:'family', t:['person'], fx:0.50, fy:0.50, zoom:1,   base:5.6},
+    {n:'追逐·跟拍',       d:'孩子在画面前 1/3，留出路',     p:'family', t:['person'], fx:0.62, fy:0.50, zoom:1,   off:1, base:5.2},
+    {n:'亲子三角',        d:'大人孩子成三角，孩子在前',     p:'family', t:['person'], fx:0.50, fy:0.50, zoom:0.90, multi:1, base:5.2},
+    {n:'玩具·低机位',     d:'和孩子视线同高再拍',           p:'family', t:['object'], fx:0.50, fy:0.50, zoom:0.60, base:4.6},
+    {n:'窗边自然光',      d:'孩子靠窗，侧光进来',           p:'family', t:['scene'], hz:0.45, base:4.6},
+
+    /* ------- 探店包 ------- */
+    {n:'店主·环境人像',   d:'人物靠右，左边带招牌',         p:'store', t:['person'], fx:0.66, fy:0.45, zoom:0.90, off:1, base:5.2},
+    {n:'顾客·侧拍',       d:'侧后 45° 抓拍',                p:'store', t:['person'], fx:0.60, fy:0.45, zoom:1,   base:4.6},
+    {n:'菜品·45°俯拍',    d:'菜压右下三分，别挡主菜',       p:'store', t:['object'], fx:0.62, fy:0.60, zoom:0.90, base:5.6},
+    {n:'菜品·整桌平铺',   d:'从上方拍，对齐桌边',           p:'store', t:['object'], fx:0.50, fy:0.50, zoom:0.75, multi:1, base:5.2},
+    {n:'菜单·招牌特写',   d:'正面平视，字要正',             p:'store', t:['object'], fx:0.50, fy:0.50, zoom:0.60, base:4.6},
+    {n:'门店·正面',       d:'正对门头，左右对称',           p:'store', t:['scene'], hz:0.50, base:5.0},
+    {n:'店内·引导线',     d:'顺着走道往里拍',               p:'store', t:['scene'], hz:0.50, base:5.0}
+  ];
+
+  const GUIDE={
+    '三分法·视线留白':'thirds','三分法·反向留白':'thirds','中心构图':'cross','黄金分割':'golden',
+    '特写·填充画面':'fill','中景·环境交代':'corners','全景·人物小':'horizon','低角度·仰拍':'horizon',
+    '高角度·俯拍':'horizon','大面积留白':'empty','双人并列':'dual','过肩构图':'frame','背影构图':'cross',
+    '剪影构图':'vignette','高调构图':'clean','低调构图':'radial','对角线构图':'diag','框架构图':'frame',
+    '前景层次':'layers','三角构图':'tri','极简构图':'corners',
+    '45°俯拍·三分位':'diag','正面平视·中心':'cross','顶拍平铺':'grid','特写·填充':'fill',
+    '留白摆物':'empty','对角线摆位':'diag','三角摆位':'tri','网格平铺':'grid','前后层次':'layers',
+    '浅景深·背景虚':'fill','硬光·投影构图':'diag',
+    '三分法·地平线下三分':'horizon','三分法·地平线上三分':'horizon','地平线居中·对称':'symmetry',
+    '引导线构图':'leading','框架构图·景':'frame','三层景深':'layers','满画幅·广角':'corners',
+    '大面积天空':'horizon','剪影构图·景':'vignette','重复·韵律':'grid','对角线构图·景':'diag',
+    '剪影·低地平线':'horizon',
+    '通道对称·迎面':'symmetry','交接·双人侧位':'dual','敬酒·仰拍':'horizon','父母席·侧抓':'thirds',
+    '婚戒特写':'cross','捧花·45°':'golden','喜字背景摆拍':'symmetry','宴会厅·对称中轴':'symmetry',
+    '外景·大逆光':'horizon',
+    '蹲下·平视孩子':'cross','追逐·跟拍':'thirds','亲子三角':'tri','玩具·低机位':'fill','窗边自然光':'clean',
+    '店主·环境人像':'thirds','顾客·侧拍':'thirds','菜品·45°俯拍':'golden','菜品·整桌平铺':'grid',
+    '菜单·招牌特写':'cross','门店·正面':'symmetry','店内·引导线':'leading'
+  };
+
+  /* ================= 每条构图的讲解 ================= */
+  const TIPS={
+  '三分法·视线留白':{u:'单人照的默认答案：人靠右三分线，眼睛往左看',
+    w:'人看左边、左边空着，视线就有地方去。要是把人放正中又让他看正前方，画面像证件照——人是活的，画面是死的。观众的眼睛会顺着视线方向往空处走，那个空处就是情绪的落点。',
+    s:['把人摆到画面右边约 1/3 的位置，脸（不是身体）对在右三分线','让他看左边，眼睛朝向画面左边那块空白','头顶留一点空，别切头，也别头顶留一大片'],
+    n:'背景左边有大块杂物、或者左边是死墙时，留空反而难看。这种情况把人放左边反向留白。'},
+  '三分法·反向留白':{u:'上面的镜像版，人靠左、视线朝右',
+    w:'道理一样：视线往哪走，哪边就得给空。左右选哪个取决于现场光——哪边亮、哪边干净就往哪边留。',
+    s:['人摆左边三分线，脸对在左线上','朝右看，右边空着','右边尽量是干净背景或渐远的景深'],
+    n:'右边是墙、是杂物堆、是别人后脑勺时别用。'},
+  '中心构图':{u:'最稳的一张：人站正中间，教堂式对称感',
+    w:'中心构图靠"对称"取悦眼睛，天生庄重。代价是没有张力——它不制造节奏，只保证不出错。所以它在仪式、合影、正面证件类场合最强，在日常抓拍里最平淡。',
+    s:['把人放正中间，身体中轴对画面中线（用竖线提示对齐）','头顶留约 1/6 画面高，别把头顶贴到边','脚或腰以下可以工整切，别切在膝盖和脚踝'],
+    n:'背景中线有柱子、有分割线、有强对称时，容易穿帮，改用偏移构图。'},
+  '黄金分割':{u:'和三分法很像，但更"舒服"一点，人压 0.618 处',
+    w:'0.618 这个位置在视觉上比正好 1/3 更自然，因为比例本身不整齐，眼睛不会去"数格子"。三分法是规矩，黄金分割是感觉。',
+    s:['人摆到画面 61.8% 的位置（右侧稍微偏里一点）','脸略微朝画面里侧转一点，不要正对镜头','地平线或背景主线条尽量平行画面边，不要斜'],
+    n:'横屏拍全身、人在画面里很小的时候，这个位置很难摆准，直接用三分法更省事。'},
+  '特写·填充画面':{u:'把人脸或上半身放大到占满画面，砍掉背景',
+    w:'背景越少，人越重。特写是靠"占面积"拿注意力，不靠环境说话。代价是信息量低——观众看不到在哪、在干什么。所以特写只负责情绪，不负责叙事。',
+    s:['往前走，或者把镜头拉近，让人占到画面 2/3 以上','眼睛放在画面上三分之一处，不要正中','背景挑大块纯色（墙、天、树叶虚影）'],
+    n:'人脸上有汗、有反光、妆没补的时候别硬拍特写，瑕疵会被放大。'},
+  '中景·环境交代':{u:'退半步，人物占画面约 1/3，还能看出在哪',
+    w:'中景是"人和地方"的平衡点。留一点环境进去，观众才知道这是婚礼不是公园。婚礼纪实里 80% 的废片就是因为要么太远要么太近，中景是最耐看的落点。',
+    s:['退后一两步，人占画面高度的 1/3 到 1/2','让人物靠一侧，另一侧留给场地','画面里留一样能说明场合的东西：喜字、大门、桌花'],
+    n:'环境太乱（电线、路人、杂物）时，中景会把丑东西全拍进去，改特写。'},
+  '全景·人物小':{u:'人不重要、场地重要：拍全景交代整个现场',
+    w:'全景负责"这是哪、有多少人、多大场面"。人小不是失误，是故意让人当比例尺——有了那个小人，观众才知道厅有多大。',
+    s:['站到场地一角，用广角端，横屏','把整个空间（或主要场面）框进来，人放在画面 1/3 处','地平线一定要平，歪一点整个厅就塌了'],
+    n:'室内光线暗时全景噪点最重，别硬拉亮，宁可拍中景。'},
+  '低角度·仰拍':{u:'蹲下来往上拍，人显高、显气势',
+    w:'仰拍把背景换成天或屋顶，画面就干净了；同时透视让人显高。这是"把人拍得像主角"的最省力办法——不用摆姿势，只改机位高度。',
+    s:['蹲下或半跪，镜头在胸口以下高度','略微上仰，把人的头放在画面上部，背景尽量是天或高处','注意别让人物的鼻毛、下巴赘肉成为主体'],
+    n:'脸型偏圆、有双下巴的人仰拍会更明显；对方穿短裙、站在高处边缘时也别仰拍。'},
+  '高角度·俯拍':{u:'站高往下拍，人在画面下部，显小显可爱',
+    w:'俯拍让人变小、变柔软，还能把地面当前景（草地、地板纹理）。拍小孩、拍坐下来的人最合适，因为俯拍天然带保护感。',
+    s:['站高一头（站台阶、举高手机、站椅子上都行）','镜头往下 30-45°，人放下三分之一','让地面或桌面填住画面上半部'],
+    n:'俯拍成年人正面会让额头变大、腿变短，商务、婚纱正面别用。'},
+  '大面积留白':{u:'人放角落，空出一大片，画面"高级"',
+    w:'留白不是浪费，是给人喘气的地方。空白越大，人越孤独、越安静、越有故事。广告和电影感都靠这个。',
+    s:['人放在画面一个角（左下或右下）','其余大面积保持干净：墙、雪、天空、水面','不要在这块空白里放任何杂物，一点就毁'],
+    n:'照片要打印成小图、或者发朋友圈缩略时，人太小会看不见。留白只在能全屏看清的场合成立。'},
+  '双人并列':{u:'两个人各站一边，中间留一道缝',
+    w:'两个人一样重要时，别让谁站在谁后面。各占一侧、中间留缝，观众的眼睛会在两人之间来回——那种"来回"就是关系。',
+    s:['两人分别站画面左右三分线附近，身体略微相对','两人的头顶高度尽量接近，不要一高一矮差很多','中间留出一道能看到背景的缝，别让身体贴在一起'],
+    n:'两人身高差太大时，肩膀会一高一低很别扭，不如让矮的站前一步。'},
+  '过肩构图':{u:'从一个人肩后拍另一个人的脸',
+    w:'前景一个虚的肩膀，立刻就有了"有人在看"的视角——画面从记录变成叙事，观众站到了其中一个人的位置。两个人的对话、情绪，全靠这一下。',
+    s:['站到 A 身后偏侧一点，让他的肩或头发占画面左/右下角','对焦点放在 B 的脸上，A 保持虚','两人之间留一点空隙，能看见 B 的表情'],
+    n:'A 的肩膀占太多画面会挡住主体，控制在前景 1/5 以内。'},
+  '背影构图':{u:'拍转身走开的背影，故事感最强',
+    w:'看不见脸，观众就会自己补。背影天然带"离别、结束、开始"的意味，婚礼送客、孩子跑远、老人独行，都适合。',
+    s:['等人转身走开两三步再按，别在他刚转的瞬间拍','人放中间或三分线，朝向画面深处','让人和背景的线条（路、走廊）同向'],
+    n:'背影必须靠体态和服装识别人，穿宽松衣服、人群中会认不出是谁。'},
+  '剪影构图':{u:'逆光把人拍成黑轮廓，只留形状',
+    w:'看不清细节，观众就只能看形状——形状比脸更难造假，也更有力量。剪影的秘诀不是技术，是"轮廓要认得出是人"。',
+    s:['找太阳、窗户、亮天在人物背后的位置','点屏幕对着亮处测光（人会变黑），或手动压暗','让人做有辨识度的动作：抬头、举手、侧脸、拉手'],
+    n:'两人重叠时剪影会糊成一坨，必须让人与人之间留缝。'},
+  '高调构图':{u:'亮背景亮主体，轻盈干净',
+    w:'整体偏亮，画面缺少阴影，情绪就轻——干净、温柔、没有压力。拍白纱、婴儿、白天户外最合适。',
+    s:['找大面积亮背景：白墙、雪地、逆光亮天','让主体也偏亮，宁可略微过曝一点点','画面里不要出现深黑色块，会破坏整体'],
+    n:'皮肤偏暗、妆感重的人在亮环境里会更显疲态，别再往上拉曝光。'},
+  '低调构图':{u:'暗背景加一束光，情绪最重',
+    w:'大面积黑+一小块亮，眼睛只会看那块亮。低调把"注意力"做到了极致，也把"环境"全删了——所以它最适合拍情绪，最不适合拍纪实。',
+    s:['关掉环境灯，只留一盏侧光、窗光或手机灯','让亮部落在脸或手上，其余沉进暗处','对着亮部测光，别把画面整体提亮'],
+    n:'暗部容易糊成噪点，手机暗光画质差，别在太黑的地方硬拍。'},
+  '对角线构图':{u:'主体沿画面对角线摆，画面有动势',
+    w:'水平线让人安静，斜线让人动。对角摆放等于给画面加了一根"势"的线，观众的眼睛会顺着斜线走。适合拍动态、拍长条物、拍伸展的姿势。',
+    s:['让人物或主体从一角延伸向对角','身体、手臂、道具尽量顺着这条斜线','斜线不要穿过人脸正中，穿肩或穿身'],
+    n:'正规矩的合影、证件、建筑正面不要用斜线，会显歪。'},
+  '框架构图':{u:'用门、窗、树枝把主体框住',
+    w:'框的作用是"指定观看"。有了框，观众的眼睛被强制送到框里那个人身上，同时还多了"偷看"的亲近感。',
+    s:['找一个前景的洞：门框、窗、树枝缝、两人之间的空隙','让框占画面四周一部分，别把整个画面框死','框内主体对焦清晰，框本身可以虚'],
+    n:'框太厚会压掉主体面积；框和主体一样清楚时画面会乱，框要略虚或略暗。'},
+  '前景层次':{u:'前景、主体、背景三层都在，画面有纵深',
+    w:'照片是平的，纵深全靠层次造。最前面一层（虚的）+ 中层主体（实的）+ 远处背景，观众就会觉得"这空间是深的"。',
+    s:['贴近一样东西当前景：头发、酒杯、花、人的肩','对焦在中间那层的主体','背景挑有远近变化的方向，别对着一面墙'],
+    n:'前景太亮会抢戏，前景应该偏暗或偏虚。'},
+  '三角构图':{u:'三个人摆成三角，主次分明',
+    w:'三角形是画面里最稳的结构，还自带主次——最高那个点天然被当成主角。三个人以上，用它比"排排站"高级得多。',
+    s:['让最关键的人站三角的顶点（位置最高或最靠前）','另外两人在底边两侧，略低或略退','三人之间留出空隙，能看到各自的轮廓'],
+    n:'人数超过三个、或者身高差异大时，三角容易散，改成前后错位更自然。'},
+  '极简构图':{u:'一个人加一片干净背景，不解释任何东西',
+    w:'极简是靠"删"取胜。删到只剩主体，画面的力量就全部压在那个人身上。风险是：主体一旦没表情、没动作，画面就空了。',
+    s:['找一面纯色墙、一片天、一片水面','人放中间或三分线，占画面 1/4 到 1/2','画面里除人之外不留第二样东西'],
+    n:'背景不够干净时极简就成了"空"，先挪位置再拍。'},
+
+  '45°俯拍·三分位':{u:'拍菜、拍物最常用：斜上方 45°，主体压右下三分',
+    w:'45 度是"看得见形状也看得见高度"的唯一角度。正俯拍只看到形状，平拍只看到侧面。45 度把两样都给你，是物品摄影的通用解。',
+    s:['把手机举到胸口高度，镜头斜向下方约 45 度','主体压在右下三分交点，左上留一点空','背景用深色桌面或虚掉的远处，别让盘子边贴画面边'],
+    n:'浅盘、扁平的东西（一张纸、一件衣服）45 度看不出内容，改顶拍。'},
+  '正面平视·中心':{u:'正对着拍，主体居中，最工整',
+    w:'正面平视能完整交代物体的正面信息和比例，是"看清"的角度。代价是平——它像档案照，好看全靠背景和光。',
+    s:['手机和主体同高度，镜头正对，不要歪','主体放正中，四周留均匀的边距','背景用纯色或布料，光从侧上方来'],
+    n:'立体感强的东西（瓶子、鞋子）平拍会显扁，改 45 度。'},
+  '顶拍平铺':{u:'从正上方往下拍，摆成平面，像杂志排版',
+    w:'顶拍把立体压成平面，好看的原因不是物本身，是"排列"。这是唯一能一次展示多样东西的角度，所以菜单、穿搭、工具陈列都用它。',
+    s:['手机平行于桌面，正上方往下拍','东西之间留等宽的缝，形成网格感','四周留边要一样宽，别歪'],
+    n:'拍单个立着的物体顶拍会认不出是什么；有反光面的东西顶拍会出现自己的影子。'},
+  '特写·填充':{u:'只留主体最要紧的那一块，其他全砍掉',
+    w:'特写靠面积换注意力。观众看到的细节越多，越会觉得"这东西值钱"。所以卖货、卖质感都用特写。',
+    s:['贴近到主体占满 2/3 以上，宁可切掉一部分','对焦点放在最有质感的地方：纹理、logo、边缘','光用侧光，让表面有明暗'],
+    n:'主体表面有划痕、有指纹、有污渍时别特写，会放大缺点。'},
+  '留白摆物':{u:'东西靠边，空出一大片，画面干净、贵',
+    w:'留白让物品显得"被郑重对待"。广告里的产品图几乎都是留白构图——空的地方不是空的，是价格的暗示。',
+    s:['主体放在画面一侧（左或下），占画面 1/3 左右','空出来的地方保持纯净：白墙、素布、桌面','主体和画面边之间留一指到两指的呼吸距离'],
+    n:'要展示多个物品或要展示细节时，留白会浪费画面，改填充构图。'},
+  '对角线摆位':{u:'主体斜着摆，从一角指向对角',
+    w:'斜线给静物加动势。一根筷子、一条项链、一支笔，顺着对角线摆就活了；平着摆就死了。',
+    s:['让主体的长边顺着画面对角线方向','一端靠近画面角，另一端指向对角','两端都别完全顶到画面边，各留一点空'],
+    n:'方形、圆形的东西没有长边，硬摆对角会显歪。'},
+  '三角摆位':{u:'三样东西摆成三角，成组出现',
+    w:'三件成组是最小的"完整"。三角形让三件东西互相支撑，看起来像一套，价格也就像一套。',
+    s:['三件东西摆成不等边三角，最高的放后面','每两件之间留出可见的缝','三件可以在颜色上呼应：一亮两暗或一暗两亮'],
+    n:'两件或四件以上时三角结构不成立，改用并列或网格。'},
+  '网格平铺':{u:'多个同类整齐排开，像目录页',
+    w:'整齐重复会产生韵律感，眼睛会去比对差异——这正是"系列感"的来源。数量越多，整齐越重要。',
+    s:['从正上方拍，东西排成行列，间距相等','行列一定对齐画面边，别斜','数量取单数比双数更好看（3、5、7）'],
+    n:'东西大小差太多时网格会乱，按大小分两行排。'},
+  '前后层次':{u:'一大一小，前面压后面',
+    w:'两个物体，一前一后，画面就有了空间。前面那个负责质感，后面那个负责"还有更多"。',
+    s:['大件放后面，小件放前面靠下','对焦在前面小件上，后面大件略虚','前件和后件在画面上有一点重叠，别完全分开'],
+    n:'前件太高会挡住后件，控制重叠面积在 1/4 以内。'},
+  '浅景深·背景虚':{u:'贴近拍，背景糊成一片色块',
+    w:'手机想虚化只有一个办法：靠得足够近。背景一虚，主体就被"抠"出来了，杂乱的环境也不再碍事。',
+    s:['把手机靠近到 15-30 厘米（手机最近对焦距离附近）','点屏幕对焦在主体上，必要时长按锁定','背景挑有颜色的东西，虚了才好看'],
+    n:'手机贴近后容易挡光、也容易把影子拍进去；离太近对不上焦就别硬凑。'},
+  '硬光·投影构图':{u:'把影子拍进画面，影子也是主体',
+    w:'硬光（太阳直射、单灯）会产生清晰的影子。影子一入画，画面就有了两个主体，平面的照片立刻变立体。',
+    s:['找侧光或顶光，让物体在桌面投出清楚的影子','把影子和物体一起框进画面，影子朝向画面内部','主体不要放在正中，让影子有走向'],
+    n:'阴天、室内散光没有硬影子，这套完全不成立。'},
+
+  '三分法·地平线下三分':{u:'风景最常用：地平线放下面三分之一，天占 2/3',
+    w:'天空好看、地面无聊的时候，把地平线压低，天就占大头。这是"看天"的构图。',
+    s:['把地平线对在画面下方三分之一处（用提示线对齐）','横屏，手机保持水平，地平线必须平','天空要有内容：云、晚霞、山影，别是纯灰'],
+    n:'天空一片灰白没云时，压地平线只会拍出一大块死白，改上三分。'},
+  '三分法·地平线上三分':{u:'地平线放上面三分之一，地占 2/3',
+    w:'地面有内容（纹理、图案、人、路）而天空平淡时，反过来让地面占大头。选哪条三分线，看哪边更有东西说。',
+    s:['地平线对在上方三分之一处','地面要有前景：草、石、水纹、影子','手机端平，地平线不能斜'],
+    n:'地面是大片空沥青、空水泥时，多拍地面只会更空。'},
+  '地平线居中·对称':{u:'地平线放正中，上下对半，最稳最静',
+    w:'对半切是最静的结构，适合水面倒影、空旷平原这种天生对称的场景。它不制造节奏，只制造秩序感。',
+    s:['地平线严格放在画面正中','找对称元素：倒影、水面、对称的建筑','手机端平，歪一度就毁'],
+    n:'上下两半内容不对等时（比如下面全是空水），对半会显呆，改三分。'},
+  '引导线构图':{u:'用路、栏杆、墙把视线拉进画面深处',
+    w:'线条会把眼睛"牵"过去。一条从画面边缘收向深处的线，等于给观众铺了一条进画面的路。',
+    s:['找一条明显的线：路、水道、栏杆、屋檐边','让这条线从画面一侧边缘进入，斜向收进远处','线的尽头放一个主体：人、房子、树'],
+    n:'线太多太乱时（电线、广告牌）会互相打架，只留一条主线。'},
+  '框架构图·景':{u:'用门洞、树枝圈住远处的景',
+    w:'框把"远方"变成"目的地"。没有框，远景只是一片；有了框，观众知道该看哪里，还多了一层窥视感。',
+    s:['找一个前景的洞：门、窗、树枝缝、山与山之间的缺口','框占画面边缘一圈，中间留空给远景','对焦在远景上，框保持略暗或略虚'],
+    n:'框太亮太清楚时会抢焦点，宁可欠曝一点。'},
+  '三层景深':{u:'近、中、远各一样东西，画面最深',
+    w:'风景照片的"深"不是靠广角，是靠层次。有了近景的虚、中景的实、远景的淡，观众的眼睛会往里走。',
+    s:['近景放一样东西：草、石、水、栏杆，占下部','中景放主体：人、树、房子','远景保留天空或远山，要有淡化的空气感'],
+    n:'三层内容颜色太接近时会糊成一块，中景挑个反差色。'},
+  '满画幅·广角':{u:'不要地平线，让景物铺满整个画面',
+    w:'去掉地平线等于去掉了"上下"这个参照，画面变成一片纹理。适合拍花海、人群、墙面这种"密度"本身就是内容的东西。',
+    s:['找一片均匀、有细节的东西：花、叶、石、人海','镜头压平，让整幅画面被填满，不露天地','尽量让重复的元素有轻微变化，别完全一致'],
+    n:'内容不够密时会露出破绽（天、地、空角落），宁可退一步加地平线。'},
+  '大面积天空':{u:'天空占 80%，地只留一条',
+    w:'把地压到最薄，天空就成了主角。这种极端的比例会制造"空、远、一个人"的情绪，适合枯景、雪原、海边。',
+    s:['地平线压到画面下方 1/5 处','天空必须有层次：云、渐变色、光','地面留一点点细节当锚：一个人的背影、一排树'],
+    n:'天空平淡（阴天、正午）时这么拍就是一块白，别用。'},
+  '剪影构图·景':{u:'逆光拍成剪影，只留轮廓',
+    w:'把细节全抹掉，剩下的形状就是全部信息。山脊、树、人的轮廓，逆光下最有辨识度，也最不容易被环境干扰。',
+    s:['面向光源（夕阳、窗、亮天），让前景压成黑','对着亮处点屏幕测光，或手动压暗','轮廓要有特征：树冠形状、人姿态、屋顶线条'],
+    n:'轮廓本身没有特征（一团树、一片糊）时，剪影等于黑块。'},
+  '重复·韵律':{u:'同样的东西反复排列，靠节奏取胜',
+    w:'重复本身就能看。眼睛会在重复里找"不一样的那一个"，那个例外就是画面的重心。',
+    s:['找成排的东西：窗、椅、砖、柱、稻田','让排列填满画面，边缘可以不收全','留一个"破例"：一扇开着的窗、一个人、一个错位'],
+    n:'重复的东西本身丑或破旧时，重复只会放大缺点。'},
+  '对角线构图·景':{u:'山脊、屋顶斜着切开画面',
+    w:'风景里最怕平平的地平线。一条斜线切开画面，静景就有了势，视觉上也会觉得画面更宽更大。',
+    s:['找天然斜线：山脊、屋顶边、坡地、路的走向','让斜线从一角走向对角，别刚好横穿中心','斜线两侧明暗或颜色要有差别'],
+    n:'地平线本身有水平参照（水面、远处平原）时，斜线会显得"拍歪了"。'},
+  '剪影·低地平线':{u:'剪影加极低地平线，天占满，最空最远',
+    w:'两个极端叠在一起——没有细节（剪影）+ 没有地面（低地平线），画面就只剩天和轮廓，情绪非常孤独。',
+    s:['地平线压到画面最下方 1/5 以内','前景只留一个清晰轮廓：树、人、电线杆','天空要有渐变，从亮到暗有过渡'],
+    n:'天空没有渐变时这张会像曝光失败，先确认天空好看。'},
+
+  '通道对称·迎面':{u:'婚礼最核心的一张：站中轴线上，新人迎面走',
+    w:'通道本身就是天然的引导线，中轴就是天然的对称。站在这条线上等，新人走向你的一瞬间，观众等于坐在第一排——位置对了，不用技巧。',
+    s:['提前站到通道正中，身体对正轴线，别偏','等新人走进画面约 10-15 米，别太早按','新人越走越近时连续拍，挑眼神最正、步态最稳那张'],
+    n:'通道两侧客人挡镜头时，宁可靠边站用侧位，别硬挤中轴。'},
+  '交接·双人侧位':{u:'父亲与新郎交接，两人各压一条三分线',
+    w:'交接是两个男人的时刻，也是全片情绪最重的一段。两人各占一线，中间留缝，观众的眼睛会在两人之间来回，那来回就是"托付"。',
+    s:['站侧面 45 度，让两人分处左右三分线','焦点先给父亲的手和女儿的手，再抬起来给两人脸','连拍，抓父亲松手那一瞬'],
+    n:'两人贴得很近、身体重叠时，侧位会拍成一团，改过肩或从背后拍。'},
+  '敬酒·仰拍':{u:'坐下位仰拍，把酒杯和笑脸一起拍进去',
+    w:'敬酒是全场最热闹的一段，也是机位最容易被挡的一段。坐下来仰拍，视角低、天花板干净，人和杯都在画面上，比站着抢位置省力。',
+    s:['在桌边坐下或蹲下，镜头略上仰','把举起的杯子放在画面下半部，人的脸在上半部','用连拍，抓碰杯那一下'],
+    n:'天花板有强光或吊灯直射时，仰拍会大面积过曝，改平视侧拍。'},
+  '父母席·侧抓':{u:'从侧后 45 度抓父母的表情，不打扰',
+    w:'父母席最好的照片从来不是"看镜头"，是"没在看镜头"。侧后方拍，他们在看仪式，你在看他们——这才是纪实。',
+    s:['站到父母侧后方 45 度，不要进入他们视野','焦点锁在眼睛，用连拍','等到仪式高潮（交换戒指、致辞）时再按'],
+    n:'父母手上有动作、擦眼泪时别用长焦裁太紧，留一点手部动作。'},
+  '婚戒特写':{u:'戒指单独拍，45 度摆，背景用布料或捧花',
+    w:'戒指是"证据"，观众需要一个能看清的实物。特写不需要人多，只需要一个干净的背景和一点侧光，质感就出来了。',
+    s:['把戒指放在深色绒布、木纹或捧花上，45 度斜拍','用窗光或手机灯从侧上方打，让金属有反光','贴近到戒指占画面 1/3 以上，对焦在戒面'],
+    n:'戒指表面有指纹时先擦干净，特写会把指纹放大成主角。'},
+  '捧花·45°':{u:'捧花压三分交点，背景虚掉',
+    w:'捧花是婚礼里最好拍的道具，因为它自带色彩和层次。45 度加虚化背景，花就会"浮"在画面上。',
+    s:['捧花放在画面右下交点，斜上方 45 度','背景挑新娘的白纱、绿植或远处虚掉的人','对焦在最前面那朵花的花心'],
+    n:'花已经蔫了或有明显折痕时别特写，改拍整体或手部动作。'},
+  '喜字背景摆拍':{u:'有喜字的墙面，主体居中留白',
+    w:'喜字自带"这是婚礼"的信息，不用解释。对称的墙面配居中的人或物，是最稳的合影背景。',
+    s:['找一面有喜字或红双喜的干净墙','人或物居中，四周留等宽的空','不要贴着墙站，退开一步避免投影'],
+    n:'墙上有插座、开关、杂物时，居中构图会一起拍进去，挪位置或用身体挡住。'},
+  '宴会厅·对称中轴':{u:'正对舞台，左右对称，交代全场',
+    w:'厅的美靠对称。正对舞台中轴拍，观众一眼就知道场面有多大，也自动读到"仪式感"。',
+    s:['尽量站到厅的中轴线上，身体对正舞台','把舞台或主桌放正中，两侧桌次对称入画','地平线（桌面线、地砖线）保持水平'],
+    n:'灯光秀、追光乱扫时对称构图会糊，宁可改成拍局部。'},
+  '外景·大逆光':{u:'背对夕阳，人压暗或压成轮廓',
+    w:'逆光是婚礼外景里最出片的十分钟。光晕、轮廓、暖调，都是顺光给不了的。代价是人脸会暗，要接受这一点。',
+    s:['让太阳落在新人身后（略偏一点更好）','点屏幕对天空测光，或手动压暗让人变成半剪影','让人挡住一部分太阳，用身体边缘勾出光边'],
+    n:'太阳太高太硬（正午）时逆光会全是灰雾，等日落前一小时再拍。'},
+
+  '蹲下·平视孩子':{u:'蹲到孩子的眼睛高度，别站着俯拍',
+    w:'俯拍孩子=大人视角，画面里孩子永远是被看的一方。蹲下来平视，孩子就成了"人"，不是"可爱的东西"。这一蹲，胜过所有技巧。',
+    s:['蹲下或坐地，让镜头和孩子眼睛同高','距离一米左右，别太远','等孩子自己抬头或转头时按'],
+    n:'孩子跑动时蹲着追不上，改成站姿跟拍或先让他停下来。'},
+  '追逐·跟拍':{u:'孩子在画面前 1/3，面前留出路',
+    w:'运动的画面要给"去处"。孩子前方留空，观众就会预期他跑向哪里，照片就有了下一秒。',
+    s:['孩子在画面左侧或右侧 1/3，朝画面另一侧跑','镜头保持和孩子同高，略退一点','用连拍，挑脚离地、动作张开的那张'],
+    n:'背景是墙或围栏时，留出的"路"是死路，照片会闷，找有纵深的方向。'},
+  '亲子三角':{u:'大人和孩子摆成三角，孩子在前',
+    w:'三角结构自带主次和稳定。孩子放前面，是因为他天然是视觉重心；大人在后面，构成保护感。',
+    s:['大人站后侧，孩子站前侧偏中','三人的头部形成不等边三角，别在同一水平线','让孩子做点事（低头、举东西），别僵着'],
+    n:'只有两人时三角不成立，改用双人并列或过肩。'},
+  '玩具·低机位':{u:'玩具也蹲下来拍，和孩子视线同高',
+    w:'同一高度的照片才像是"孩子看到的"。玩具拍得高，就变成商品图；拍得低，就变成回忆。',
+    s:['镜头放到地面高度，和玩具同一水平','让玩具占画面 1/3 以上，背景是地面或玩具堆','如果孩子在玩，把手一起拍进去'],
+    n:'地面杂乱时低机位会把杂物全拍进来，先清一块或垫张布。'},
+  '窗边自然光':{u:'孩子靠窗，侧光进来，最柔的光',
+    w:'窗光是免费的柔光箱。侧光进脸，有立体感又不刺眼，是室内拍孩子唯一靠谱的光。',
+    s:['让孩子侧对窗户，光从脸的一侧进来','关掉室内的黄灯，避免两种色温打架','背景挑暗一点的室内，人会更亮'],
+    n:'窗户正对强太阳（直射）时会在脸上留硬阴影，拉一层纱或换个窗。'},
+
+  '店主·环境人像':{u:'人靠右，左边带招牌，一张就说清是谁、做什么',
+    w:'环境人像是"人和地方"的合体。招牌交代生意，人物交代人。左边留招牌、右边放人，一张图就能当店铺封面。',
+    s:['让店主站在画面右侧三分线，正面或略侧','左边留出招牌、门头或店内标志物','对焦在脸上，招牌略虚也认得出'],
+    n:'招牌上的字被挡住一半时反而更难认，宁可退一步。'},
+  '顾客·侧拍':{u:'从侧后 45 度拍客人，自然不做作',
+    w:'客人看镜头就假了。侧后拍，他还在自己的状态里，画面才有"生意真好"的真实感。',
+    s:['站到客人侧后方 45 度，不进入他视野','连拍他点单、举筷、笑的那几秒','背景带一点店内环境，别纯墙'],
+    n:'店里人多时侧拍会拍到别人后脑勺，选背对墙的角度。'},
+  '菜品·45°俯拍':{u:'最常用的拍菜角度：斜上方 45 度，主体压右下',
+    w:'45 度同时给你"形状"和"高度"，是菜最像菜的角度。压右下三分、左上留空，看起来就是菜单封面。',
+    s:['手机举到胸口高度，斜下 45 度','菜放右下三分交点，左上留桌面空','用侧面的窗光或店内灯，别开闪光灯'],
+    n:'汤类、平盘菜 45 度看不出内容，改顶拍；有热气时别正对着拍，侧光才拍得出热气。'},
+  '菜品·整桌平铺':{u:'从上方拍整桌，对齐桌边',
+    w:'一桌菜的说服力来自"多"。顶拍能把所有菜排进一个画面，看起来丰盛；对齐桌边则让画面工整。',
+    s:['站起来把手机平行桌面，从正上方拍','桌子边缘和画面边平行，别歪','挑菜最多、最完整的那一桌，别拍吃了一半的'],
+    n:'桌布花、盘子花色杂时顶拍会很乱，选素色桌或局部拍。'},
+  '菜单·招牌特写':{u:'正面平视拍菜单或招牌，字要正',
+    w:'字歪了读者就烦。正面平视、镜头和牌子平行，是让字"立正"的唯一办法；再留一点边，看起来才像成品照。',
+    s:['镜头正对牌子，和牌子保持平行，别斜','牌子占画面 2/3，四周留等宽的空','光线均匀，避免一半亮一半暗'],
+    n:'牌子有反光（亚克力、玻璃）时侧一点角度，别正对光源。'},
+  '门店·正面':{u:'正对门头，左右对称，最像"店铺封面"',
+    w:'正面门头是最直接的"我在哪"。对称让画面稳，也让招牌显得正经；退开一点拍全，比贴着门拍更有生意感。',
+    s:['站到门正前方，身体对正门中线','把整块招牌和门框拍全，上面留一点天空或楼','地平线（台阶线）保持水平'],
+    n:'正对时有车、有人挡招牌，宁可等两秒或侧移一步。'},
+  '店内·引导线':{u:'顺着走道往里拍，把客人视线带进去',
+    w:'店内最怕拍成一堵墙。走道、桌列、灯带本身就是引导线，顺着它拍，观众会被"带进店"，画面立刻有纵深。',
+    s:['站在入口或走道起点，镜头顺着走道方向','让走道/桌列从画面两侧收向远处','尽头放个亮点：吧台、窗、招牌、人'],
+    n:'走道太短（三米内）时引导线不成立，改拍局部特写。'}
+  };
+
+  /* ================= 尺寸 ================= */
+  function resize(){
+    S.dpr=Math.min(window.devicePixelRatio||1,2);
+    S.W=cv.clientWidth; S.H=cv.clientHeight;
+    cv.width=Math.round(S.W*S.dpr); cv.height=Math.round(S.H*S.dpr);
+    ctx.setTransform(S.dpr,0,0,S.dpr,0,0); draw();
+  }
+  window.addEventListener('resize',resize);
+  window.addEventListener('orientationchange',()=>setTimeout(resize,150));
+
+  /* ================= 相机 ================= */
+  async function openCamera(){
+    if(S.stream) S.stream.getTracks().forEach(t=>t.stop());
+    try{
+      S.stream=await navigator.mediaDevices.getUserMedia({
+        audio:false, video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}
+      });
+    }catch(e){
+      try{ S.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false}); }
+      catch(e2){ toast('打不开摄像头：用手机浏览器打开本页并允许相机权限（需 https）。'); return; }
+    }
+    video.srcObject=S.stream;
+    try{ await video.play(); }catch(e){}
+    S.ready=true; loop();
+  }
+
+  /* ================= 打分 ================= */
+  function inPack(c){ return !c.p || c.p===S.pack || S.pack==='basic'; }
+
+  function scoreOf(c){
+    let s=c.base||4;
+    const f=S.subj;
+    if(!f) return s;
+    if(S.mode!=='scene'){
+      if(c.off && f.offCenter) s+=2;
+      if(c.cen && !f.offCenter) s+=2;
+      if(c.small && f.area<0.12) s+=1.6;
+      if(c.large && f.area>0.30) s+=1.6;
+      if(c.fx!==undefined){
+        const dx=Math.abs(f.x-c.fx), dy=Math.abs(f.y-c.fy);
+        s-=(dx*1.1+dy*0.9)*2.4;
+      }
+    }else{
+      if(c.hz===null || c.hz===undefined) s+=0.8;
+    }
+    return s;
+  }
+
+  function buildComps(force){
+    const pool=COMPS.filter(c=>c.t.indexOf(S.mode)>=0 && inPack(c));
+    const list=pool.map(c=>({c,s:scoreOf(c)})).sort((a,b)=>b.s-a.s).map(o=>o.c);
+    const shown=S.showAll?list:list.slice(0,6);
+    const sig=S.mode+'|'+S.pack+'|'+(S.showAll?1:0)+'|'+shown.map(c=>c.n).join(',');
+    const now=Date.now();
+    if(!force && sig===S.rankSig && now-S.lastBuild<3000) return;
+    S.rankSig=sig; S.lastBuild=now;
+    S.comps=shown; S.sel=0; renderPlans();
+  }
+
+  function renderPlans(){
+    const box=document.getElementById('plans');
+    box.innerHTML='';
+    S.comps.forEach((c,i)=>{
+      const b=document.createElement('div');
+      b.className='plan'+(i===S.sel?' on':'');
+      b.setAttribute('role','button');
+      b.innerHTML=(i===0?'<i class="badge">推荐</i>':'')+'<span class="pn">'+c.n+
+        '</span><span class="q">?</span><span class="r">'+c.d+'</span>';
+      b.onclick=(ev)=>{
+        if(ev.target.classList.contains('q')){ openDetail(c); return; }
+        S.sel=i; renderPlans(); draw(); noteChoice(c.n);
+      };
+      box.appendChild(b);
+    });
+    const all=document.createElement('button');
+    all.className='allbtn';
+    const total=COMPS.filter(c=>c.t.indexOf(S.mode)>=0 && inPack(c)).length;
+    all.textContent=S.showAll?'收起':'全部 '+total;
+    all.onclick=()=>{ S.showAll=!S.showAll; buildComps(true); };
+    box.appendChild(all);
+
+    const learn=document.createElement('button');
+    learn.className='allbtn';
+    learn.style.borderStyle='solid';
+    learn.style.color='#ffd54a';
+    learn.textContent='学一条';
+    learn.onclick=()=>{
+      const pool=COMPS.filter(c=>c.t.indexOf(S.mode)>=0 && inPack(c));
+      openDetail(pool[Math.floor(Math.random()*pool.length)]);
+    };
+    box.appendChild(learn);
+
+    const c=S.comps[S.sel];
+    if(c && S.subj) document.getElementById('hint').innerHTML='<span class="t">推荐 · '+c.n+'</span> · '+c.d;
+    else if(c) document.getElementById('hint').innerHTML='<span class="t">'+c.n+'</span> · 先点一下主体位置';
+  }
+
+  /* ================= 构图详解 ================= */
+  const MODE_CN={person:'人像',object:'静物',scene:'景色'};
+
+  function openDetail(c){
+    const t=TIPS[c.n];
+    if(!t){ toast('这条还没写讲解'); return; }
+    const packName=(c.p&&PACKS[c.p])?PACKS[c.p].name+' · ':'';
+    document.getElementById('dTag').textContent=packName+MODE_CN[S.mode];
+    document.getElementById('dName').textContent=c.n;
+    document.getElementById('dUse').textContent=t.u;
+    document.getElementById('dWhy').textContent=t.w;
+    document.getElementById('dHow').innerHTML=t.s.map((x,i)=>
+      '<div class="step"><i>'+(i+1)+'</i><span>'+x+'</span></div>').join('');
+    document.getElementById('dNot').textContent=t.n;
+    document.getElementById('detail').style.display='block';
+    // 记住用哪条
+    document.getElementById('dUseBtn').onclick=()=>{
+      const idx=S.comps.findIndex(x=>x.n===c.n);
+      if(idx>=0){ S.sel=idx; }
+      else{ S.comps=[c].concat(S.comps); S.sel=0; }
+      document.getElementById('detail').style.display='none';
+      renderPlans(); draw(); noteChoice(c.n);
+      if(!S.subj) toast('点一下画面上主体的位置，我就按这条给你画线',2600);
+    };
+  }
+  document.getElementById('dClose').addEventListener('click',()=>{
+    document.getElementById('detail').style.display='none';
+  });
+
+  /* ================= 裁剪 ================= */
+  function cropRect(){
+    const vw=video.videoWidth||1280, vh=video.videoHeight||720;
+    const R=S.ratioW/S.ratioH;
+    let cw,ch;
+    if(vw/vh>R){ ch=vh; cw=vh*R; } else { cw=vw; ch=vw/R; }
+    const c=S.comps[S.sel]||{};
+    const zoom=c.zoom||1; cw*=zoom; ch*=zoom;
+    const ax=(S.subj?S.subj.x:0.5)*vw, ay=(S.subj?S.subj.y:0.45)*vh;
+    const fx=(S.mode==='scene')?0.5:(c.fx!==undefined?c.fx:0.5);
+    const fy=(S.mode==='scene')?0.5:(c.fy!==undefined?c.fy:0.45);
+    let x=ax-fx*cw, y=ay-fy*ch;
+    x=Math.max(0,Math.min(vw-cw,x)); y=Math.max(0,Math.min(vh-ch,y));
+    return {x,y,w:cw,h:ch};
+  }
+
+  /* ================= 绘制 ================= */
+  function vmap(){
+    const vw=video.videoWidth||1280, vh=video.videoHeight||720;
+    const scale=Math.min(S.W/vw,S.H/vh);
+    return {scale, ox:(S.W-vw*scale)/2, oy:(S.H-vh*scale)/2, vw, vh};
+  }
+
+  function guideOf(c){
+    if(!c) return 'thirds';
+    return GUIDE[c.n] || (c.hz!==null&&c.hz!==undefined?'horizon':'corners');
+  }
+
+  function drawGuides(c,X,Y,W,H){
+    const g=guideOf(c), A='#ffd54a', B='#ffffff5c';
+    const L=(x1,y1,x2,y2,col,w,dash)=>{
+      ctx.strokeStyle=col||B; ctx.lineWidth=w||1; ctx.setLineDash(dash||[]);
+      ctx.beginPath(); ctx.moveTo(X+x1,Y+y1); ctx.lineTo(X+x2,Y+y2); ctx.stroke(); ctx.setLineDash([]);
+    };
+    const dot=(x,y,r,col)=>{ ctx.fillStyle=col||A; ctx.beginPath(); ctx.arc(X+x,Y+y,r,0,Math.PI*2); ctx.fill(); };
+    const P=W/3,Q=H/3;
+    switch(g){
+      case 'thirds':
+        L(P,0,P,H,B,1);L(2*P,0,2*P,H,B,1);L(0,Q,W,Q,B,1);L(0,2*Q,W,2*Q,B,1);
+        dot(P,Q,4);dot(2*P,Q,4);dot(P,2*Q,4);dot(2*P,2*Q,4); break;
+      case 'cross': L(W/2,0,W/2,H,A,1.5);L(0,H/2,W,H/2,A,1.5);dot(W/2,H/2,7); break;
+      case 'golden':
+        L(W*0.382,0,W*0.382,H,B,1);L(W*0.618,0,W*0.618,H,A,1.5);
+        L(0,H*0.382,W,H*0.382,B,1);L(0,H*0.618,W,H*0.618,A,1.5);dot(W*0.618,H*0.382,5); break;
+      case 'diag': L(0,0,W,H,A,1.5);L(W,0,0,H,B,1); break;
+      case 'frame':
+        L(W*.08,H*.08,W*.92,H*.08,A,1.5);L(W*.92,H*.08,W*.92,H*.92,A,1.5);
+        L(W*.92,H*.92,W*.08,H*.92,A,1.5);L(W*.08,H*.92,W*.08,H*.08,A,1.5); break;
+      case 'leading':{
+        const tx=W*(c.fx!==undefined?c.fx:0.5), ty=H*(c.fy!==undefined?c.fy:0.5);
+        L(0,H,tx,ty,A,1.5);L(W,H,tx,ty,A,1.5);dot(tx,ty,5); break; }
+      case 'empty':{
+        const fx=c.fx!==undefined?c.fx:0.5;
+        const x0=fx>0.5?0:W*fx, ww=W*(fx>0.5?fx:1-fx);
+        ctx.fillStyle='#ffffff12'; ctx.fillRect(X+x0,Y,ww,H);
+        ctx.strokeStyle=A; ctx.lineWidth=1; ctx.strokeRect(X+x0,Y,ww,H);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 12px sans-serif'; ctx.fillText('这块留空',X+x0+8,Y+H/2); break; }
+      case 'dual': L(W/3,0,W/3,H,A,1.5);L(W*2/3,0,W*2/3,H,A,1.5); break;
+      case 'fill':
+        ctx.strokeStyle=A; ctx.lineWidth=1.5; ctx.strokeRect(X+W/6,Y+H/6,W*2/3,H*2/3);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 11px sans-serif'; ctx.fillText('主体占满这里',X+W/6+6,Y+H/6+16); break;
+      case 'tri':
+        L(W*.2,H*.78,W*.8,H*.78,A,1.5);L(W*.2,H*.78,W*.5,H*.26,A,1.5);L(W*.8,H*.78,W*.5,H*.26,A,1.5);
+        dot(W*.2,H*.78,4);dot(W*.8,H*.78,4);dot(W*.5,H*.26,4); break;
+      case 'layers':
+        L(0,H/3,W,H/3,A,1.2);L(0,H*2/3,W,H*2/3,B,1);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 11px sans-serif';
+        ctx.fillText('远景',X+6,Y+H*0.30);ctx.fillText('中景',X+6,Y+H*0.64);ctx.fillText('前景',X+6,Y+H*0.95); break;
+      case 'grid':
+        for(let i=1;i<4;i++){ L(W*i/4,0,W*i/4,H,B,1); L(0,H*i/4,W,H*i/4,B,1); } break;
+      case 'corners':{
+        const s=Math.min(W,H)*0.09;
+        L(0,0,s,0,A,2);L(0,0,0,s,A,2);L(W,0,W-s,0,A,2);L(W,0,W,s,A,2);
+        L(0,H,s,H,A,2);L(0,H,0,H-s,A,2);L(W,H,W-s,H,A,2);L(W,H,W,H-s,A,2); break; }
+      case 'radial':{
+        const fx=W*(c.fx!==undefined?c.fx:0.5), fy=H*(c.fy!==undefined?c.fy:0.5);
+        for(let i=0;i<12;i++){ const a=i*Math.PI/6;
+          L(fx,fy,fx+Math.cos(a)*Math.max(W,H),fy+Math.sin(a)*Math.max(W,H),'#ffd54a26',1); }
+        dot(fx,fy,5); break; }
+      case 'vignette':{
+        const gd=ctx.createRadialGradient(X+W/2,Y+H/2,Math.min(W,H)*0.22,X+W/2,Y+H/2,Math.max(W,H)*0.62);
+        gd.addColorStop(0,'#00000000'); gd.addColorStop(1,'#000000c9');
+        ctx.fillStyle=gd; ctx.fillRect(X,Y,W,H);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 11px sans-serif'; ctx.fillText('让主体压暗，只留轮廓',X+8,Y+18); break; }
+      case 'clean':
+        ctx.fillStyle='#ffffff10'; ctx.fillRect(X,Y,W,H);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 11px sans-serif'; ctx.fillText('亮背景、亮主体，不要阴影',X+8,Y+18); break;
+      case 'symmetry': L(W/2,0,W/2,H,A,1.5);L(0,H/2,W,H/2,A,2,[10,7]); break;
+      case 'horizon':{
+        const hz=(c.hz!==null&&c.hz!==undefined)?c.hz:0.5;
+        L(0,H*hz,W,H*hz,A,2,[10,7]);
+        ctx.fillStyle='#ffd54a'; ctx.font='600 12px sans-serif'; ctx.fillText('地平线对齐这条',X+8,Y+H*hz-8); break; }
+      default: L(P,0,P,H,B,1);
+    }
+    const fx=W*(c.fx!==undefined?c.fx:0.5), fy=H*(c.fy!==undefined?c.fy:0.5);
+    ctx.strokeStyle='#ffd54a'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(X+fx,Y+fy,6,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(X+fx-11,Y+fy);ctx.lineTo(X+fx-6,Y+fy);
+    ctx.moveTo(X+fx+6,Y+fy);ctx.lineTo(X+fx+11,Y+fy);
+    ctx.moveTo(X+fx,Y+fy-11);ctx.lineTo(X+fx,Y+fy-6);
+    ctx.moveTo(X+fx,Y+fy+6);ctx.lineTo(X+fx,Y+fy+11);
+    ctx.stroke();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,S.W,S.H);
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,S.W,S.H);
+    if(!S.ready||!video.videoWidth) return;
+    const m=vmap();
+    ctx.globalAlpha=0.30; ctx.drawImage(video,m.ox,m.oy,m.vw*m.scale,m.vh*m.scale); ctx.globalAlpha=1;
+
+    const t=cropRect();
+    if(!S.rect||Math.abs(S.rect.w-t.w)>0.5) S.rect={x:t.x,y:t.y,w:t.w,h:t.h};
+    else{
+      const k=0.16;
+      S.rect.x+=(t.x-S.rect.x)*k; S.rect.y+=(t.y-S.rect.y)*k;
+      S.rect.w+=(t.w-S.rect.w)*k; S.rect.h+=(t.h-S.rect.h)*k;
+    }
+    const c=S.rect;
+    const X=m.ox+c.x*m.scale, Y=m.oy+c.y*m.scale, W=c.w*m.scale, H=c.h*m.scale;
+
+    ctx.fillStyle='#000';
+    ctx.fillRect(m.ox,m.oy,m.vw*m.scale,Math.max(0,Y-m.oy));
+    ctx.fillRect(m.ox,Y+H,m.vw*m.scale,Math.max(0,m.oy+m.vh*m.scale-(Y+H)));
+    ctx.fillRect(m.ox,Y,Math.max(0,X-m.ox),H);
+    ctx.fillRect(X+W,Y,Math.max(0,m.ox+m.vw*m.scale-(X+W)),H);
+    ctx.drawImage(video,c.x,c.y,c.w,c.h,X,Y,W,H);
+
+    const comp=S.comps[S.sel]||{};
+    if(S.subj) drawGuides(comp,X,Y,W,H);
+
+    if(S.subj){
+      const px=m.ox+S.subj.x*m.vw*m.scale, py=m.oy+S.subj.y*m.vh*m.scale;
+      ctx.strokeStyle='#6ee7a8'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2); ctx.stroke();
+      if(S.subj.w){
+        ctx.setLineDash([4,3]);
+        ctx.strokeRect(m.ox+(S.subj.x-S.subj.w/2)*m.vw*m.scale, m.oy+(S.subj.y-S.subj.h/2)*m.vh*m.scale,
+          S.subj.w*m.vw*m.scale, S.subj.h*m.vh*m.scale);
+        ctx.setLineDash([]);
+      }
+    }
+    if(drag && drag.active){
+      const x1=Math.min(drag.x0,drag.x1), y1=Math.min(drag.y0,drag.y1);
+      const w=Math.abs(drag.x1-drag.x0), h=Math.abs(drag.y1-drag.y0);
+      ctx.strokeStyle='#ffd54a'; ctx.lineWidth=1.5; ctx.strokeRect(x1,y1,w,h);
+    }
+
+    ctx.fillStyle='#fff'; ctx.font='600 15px -apple-system,sans-serif';
+    ctx.fillText((S.subj&&S.sel===0?'推荐 · ':'')+(comp.n||''),X+10,Y+H-12);
+
+    if(S.brand.name){
+      ctx.fillStyle='#ffffff8c'; ctx.font='11px -apple-system,sans-serif';
+      ctx.fillText(S.brand.name+(S.brand.contact?' · '+S.brand.contact:''), X+10, Y+18);
+    }
+  }
+
+  let running=false;
+  function loop(){
+    if(running) return; running=true;
+    (function tick(){ if(!S.stream){running=false;return;} draw(); requestAnimationFrame(tick); })();
+  }
+
+  /* ================= 交互 ================= */
+  const drag={active:false,x0:0,y0:0,x1:0,y1:0};
+
+  cv.addEventListener('pointerdown',ev=>{
+    if(!S.ready||!video.videoWidth) return;
+    drag.active=true; drag.x0=ev.clientX; drag.y0=ev.clientY; drag.x1=ev.clientX; drag.y1=ev.clientY;
+  });
+  cv.addEventListener('pointermove',ev=>{
+    if(!drag.active) return;
+    drag.x1=ev.clientX; drag.y1=ev.clientY;
+  });
+  cv.addEventListener('pointerup',ev=>{
+    if(!drag.active) return;
+    drag.active=false;
+    const m=vmap();
+    const x1=Math.min(drag.x0,drag.x1), y1=Math.min(drag.y0,drag.y1);
+    const wPx=Math.abs(drag.x1-drag.x0), hPx=Math.abs(drag.y1-drag.y0);
+    const toNX = px => (px-m.ox)/m.scale/m.vw;
+    const toNY = py => (py-m.oy)/m.scale/m.vh;
+    if(wPx>26 && hPx>26){
+      const x=toNX(x1+wPx/2), y=toNY(y1+hPx/2);
+      const w=wPx/m.scale/m.vw, h=hPx/m.scale/m.vh;
+      S.subj={x:clamp(x,.05,.95),y:clamp(y,.05,.95),w:w,h:h,area:w*h,offCenter:Math.abs(x-.5)>0.06};
+    }else{
+      const x=toNX(ev.clientX), y=toNY(ev.clientY);
+      if(x<0||x>1||y<0||y>1) return;
+      S.subj={x:clamp(x,.05,.95),y:clamp(y,.05,.95),w:0,h:0,area:0.18,offCenter:Math.abs(x-.5)>0.06};
+    }
+    S.rect=null; buildComps(true); draw();
+  });
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  document.getElementById('modes').addEventListener('click',ev=>{
+    const b=ev.target.closest('button'); if(!b) return;
+    S.mode=b.dataset.m;
+    document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('on',x===b));
+    S.rect=null; buildComps(true); draw();
+  });
+
+  document.getElementById('ratio').addEventListener('click',ev=>{
+    const b=ev.target.closest('button'); if(!b) return;
+    const [w,h]=b.dataset.r.split(':').map(Number);
+    S.ratioW=w; S.ratioH=h;
+    document.querySelectorAll('#ratio button').forEach(x=>x.classList.toggle('on',x===b));
+    S.rect=null; draw();
+  });
+
+  /* ================= 行业包 ================= */
+  function renderPackSheet(){
+    const box=document.getElementById('packList');
+    box.innerHTML='';
+    Object.keys(PACKS).forEach(k=>{
+      const b=document.createElement('button');
+      b.textContent=PACKS[k].name;
+      if(k===S.pack) b.className='on';
+      b.onclick=()=>{
+        S.pack=k;
+        document.getElementById('packBtn').textContent=PACKS[k].name;
+        document.getElementById('sheet').style.display='none';
+        S.rect=null; buildComps(true); draw();
+      };
+      box.appendChild(b);
+    });
+  }
+  document.getElementById('packBtn').addEventListener('click',()=>{
+    renderPackSheet();
+    document.getElementById('sheet').style.display='block';
+  });
+  document.getElementById('packCancel').addEventListener('click',()=>{
+    document.getElementById('sheet').style.display='none';
+  });
+
+  /* ================= 拍摄 ================= */
+  document.getElementById('shoot').addEventListener('click',shoot);
+  function shoot(){
+    if(!S.ready||!video.videoWidth) return;
+    const c=cropRect();
+    const out=document.createElement('canvas');
+    out.width=Math.round(c.w); out.height=Math.round(c.h);
+    const octx=out.getContext('2d');
+    octx.drawImage(video,c.x,c.y,c.w,c.h,0,0,out.width,out.height);
+    if(S.wm && S.brand.name){
+      octx.font='500 '+Math.round(out.width*0.028)+'px sans-serif';
+      octx.fillStyle='rgba(255,255,255,.72)';
+      let t=S.brand.name+(S.brand.contact?' · '+S.brand.contact:'');
+      const w=octx.measureText(t).width;
+      octx.fillText(t, out.width-w-out.width*0.035, out.height-out.height*0.04);
+    }
+    out.toBlob(blob=>{
+      if(!blob) return;
+      const d=new Date(), p=n=>String(n).padStart(2,'0');
+      S.lastName='构图_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+'.jpg';
+      showPreview(blob); flash(); bump(S.mode,(S.comps[S.sel]||{}).n||'');
+    },'image/jpeg',0.93);
+  }
+
+  function showPreview(blob){
+    if(S.lastUrl){ try{URL.revokeObjectURL(S.lastUrl);}catch(e){} }
+    S.lastBlob=blob; S.lastUrl=URL.createObjectURL(blob);
+    document.getElementById('pimg').src=S.lastUrl;
+    document.getElementById('preview').style.display='flex';
+  }
+  document.getElementById('pclose').addEventListener('click',()=>{
+    document.getElementById('preview').style.display='none';
+  });
+  document.getElementById('psave').addEventListener('click',async()=>{
+    if(!S.lastBlob) return;
+    const file=new File([S.lastBlob],S.lastName||'构图.jpg',{type:'image/jpeg'});
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'构图照片'}); return; } }catch(e){}
+    const a=document.createElement('a'); a.href=S.lastUrl; a.download=S.lastName||'构图.jpg';
+    document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1200);
+    toast('没进相册的话，长按那张图保存。',2600);
+  });
+
+  function flash(){
+    const f=document.getElementById('flash');
+    f.style.transition='none'; f.style.opacity='.8';
+    requestAnimationFrame(()=>{ f.style.transition='opacity .35s'; f.style.opacity='0'; });
+  }
+
+  /* ================= 记录 ================= */
+  const loadStats=()=>{ try{return JSON.parse(localStorage.getItem('compStats')||'{}');}catch(e){return {};} };
+  const saveStats=s=>{ try{localStorage.setItem('compStats',JSON.stringify(s));}catch(e){} };
+  function bump(mode,name){
+    const s=loadStats(); s[mode]=(s[mode]||0)+1;
+    s.log=(s.log||[]).slice(-19); s.log.push({t:Date.now(),m:mode,n:name,pack:S.pack}); saveStats(s);
+  }
+  function noteChoice(name){
+    const s=loadStats(); s.pick=(s.pick||[]).slice(-19); s.pick.push(name); saveStats(s);
+  }
+  function showStats(){
+    const s=loadStats();
+    document.getElementById('cPerson').textContent=s.person||0;
+    document.getElementById('cObject').textContent=s.object||0;
+    document.getElementById('cScene').textContent=s.scene||0;
+    const log=(s.log||[]).slice(-8).reverse().map(x=>{
+      const d=new Date(x.t), p=n=>String(n).padStart(2,'0');
+      return p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+
+        ' · '+(PACKS[x.pack]?PACKS[x.pack].name+' ':'')+' · '+x.n;
+    }).join('<br>');
+    document.getElementById('recent').innerHTML=log||'还没有记录';
+    // 署名回填
+    const b=JSON.parse(localStorage.getItem('brandInfo')||'{}');
+    document.getElementById('brandName').value=b.name||'';
+    document.getElementById('brandContact').value=b.contact||'';
+    document.getElementById('wmChk').checked=!!b.wm;
+    document.getElementById('panel').style.display='block';
+  }
+  document.getElementById('statBtn').addEventListener('click',showStats);
+  document.getElementById('panelClose').addEventListener('click',()=>{
+    document.getElementById('panel').style.display='none';
+  });
+  document.getElementById('saveBrand').addEventListener('click',()=>{
+    const name=document.getElementById('brandName').value.trim();
+    const contact=document.getElementById('brandContact').value.trim();
+    const wm=document.getElementById('wmChk').checked;
+    localStorage.setItem('brandInfo',JSON.stringify({name,contact,wm}));
+    S.brand={name,contact}; S.wm=wm;
+    toast('署名已保存',1800);
+  });
+
+  let tt=null;
+  function toast(msg,ms){
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.style.display='block';
+    clearTimeout(tt); tt=setTimeout(()=>{el.style.display='none';},ms||2400);
+  }
+
+  /* ================= 启动 ================= */
+  try{
+    const b=JSON.parse(localStorage.getItem('brandInfo')||'{}');
+    if(b.name){ S.brand={name:b.name,contact:b.contact||''}; S.wm=!!b.wm; }
+  }catch(e){}
+
+  resize(); openCamera();
+  buildComps(true);
+})();
+</script>
+</body>
+</html>
